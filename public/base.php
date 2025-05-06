@@ -54,7 +54,7 @@ if (!isset($content)) $content = '';
             transition: background 0.2s;
         }
         .menu a.active, .menu a:hover {
-            background: #eebbc3;
+            background: #ffb347;
             color: #232946;
         }
         .main {
@@ -93,7 +93,7 @@ if (!isset($content)) $content = '';
             gap: 0.5rem;
         }
         .btn-novo:hover {
-            background: #eebbc3;
+            background: #ffb347;
             color: #232946;
         }
         .table-contratos {
@@ -116,7 +116,7 @@ if (!isset($content)) $content = '';
             background: #f4f6f8;
         }
         .table-contratos tr:hover {
-            background: #eebbc3;
+            background: #ffb347;
             color: #232946;
         }
         .btn-edit, .btn-delete {
@@ -133,7 +133,7 @@ if (!isset($content)) $content = '';
             color: #232946;
         }
         .btn-edit:hover {
-            background: #eebbc3;
+            background: #ffb347;
         }
         .btn-delete {
             color: #d7263d;
@@ -168,7 +168,7 @@ if (!isset($content)) $content = '';
             transition: background 0.2s;
         }
         .form-contrato button:hover {
-            background: #eebbc3;
+            background: #ffb347;
             color: #232946;
         }
         @media (max-width: 800px) {
@@ -205,7 +205,9 @@ if (!isset($content)) $content = '';
 </head>
 <body>
     <nav class="sidebar">
-        <h2>SDTS3 Manager</h2>
+        <div class="sidebar-logo" style="text-align:center; margin-bottom:2rem;">
+            <img src="img/logo.png" alt="SDTS 3 - Desenvolvimento de Sistemas" style="max-width:210px; width:100%; height:auto; display:block; margin:0 auto;">
+        </div>
         <ul class="menu">
             <li><a href="contratos.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'contratos.php') ? 'active' : ''; ?>">Contratos</a></li>
             <li><a href="financas.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'financas.php') ? 'active' : ''; ?>">Finanças</a></li>
