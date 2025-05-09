@@ -1,4 +1,5 @@
 <?php
+session_start();
 // Conexão com o banco de dados
 $host = 'db';
 $db   = 'sdts3';
@@ -201,11 +202,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'tabelas') {
     $tabelas_html = ob_get_clean();
     $feedback = isset($_SESSION['feedback']) ? $_SESSION['feedback'] : '';
     unset($_SESSION['feedback']);
-    header('Content-Type: application/json');
-    echo json_encode([
-        'tabelas' => $tabelas_html,
-        'feedback' => $feedback
-    ]);
+    echo json_encode(['tabelas' => $tabelas_html, 'feedback' => $feedback]);
     exit;
 }
 
@@ -213,10 +210,12 @@ if (isset($_GET['api']) && $_GET['api'] === 'tabelas') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Adicionar receita
     if (isset($_POST['add_receita'])) {
+        $valor = floatval(str_replace(',', '.', str_replace('.', '', $_POST['valor'])));
         $stmt = $pdo->prepare('INSERT INTO receitas (nome, tipo, valor, mes, ano) VALUES (?, ?, ?, ?, ?)');
         $stmt->execute([
-            $_POST['nome'], $_POST['tipo'], $_POST['valor'], $_POST['tipo']==='mensal'?$_POST['mes']:null, $_POST['ano']
+            $_POST['nome'], $_POST['tipo'], $valor, $_POST['tipo']==='mensal'?$_POST['mes']:null, $_POST['ano']
         ]);
+        usleep(100000);
         feedback('Receita adicionada com sucesso!');
     }
     // Editar receita
@@ -231,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_receita'])) {
         $stmt = $pdo->prepare('DELETE FROM receitas WHERE id=?');
         $stmt->execute([$_POST['delete_receita']]);
+        usleep(100000);
         feedback('Receita removida!');
     }
     // Adicionar item despesa
@@ -239,6 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([
             $_POST['nome'], $_POST['descricao'], $_POST['valor_unitario'], $_POST['categoria'], $_POST['elemento_item']
         ]);
+        usleep(100000);
         feedback('Item de despesa adicionado!');
     }
     // Editar item despesa
@@ -253,6 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_item'])) {
         $stmt = $pdo->prepare('DELETE FROM itens_despesas WHERE id=?');
         $stmt->execute([$_POST['delete_item']]);
+        usleep(100000);
         feedback('Item de despesa removido!');
     }
     // Adicionar despesa realizada
@@ -265,6 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([
             $_POST['item_id'], $_POST['quantidade'], $valor_total, $_POST['mes'], $_POST['ano']
         ]);
+        usleep(100000);
         feedback('Despesa realizada registrada!');
     }
     // Editar despesa realizada
@@ -283,6 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_despesa'])) {
         $stmt = $pdo->prepare('DELETE FROM despesas_realizadas WHERE id=?');
         $stmt->execute([$_POST['delete_despesa']]);
+        usleep(100000);
         feedback('Despesa realizada removida!');
     }
 }
@@ -314,7 +318,7 @@ ob_start();
         th { background: #232946; color: #fff; }
         tr:nth-child(even) { background: #f4f6f8; }
         .actions { white-space: nowrap; }
-        .feedback { margin: 1rem 0; padding: 0.7rem 1.2rem; border-radius: 6px; font-weight: bold; }
+        .feedback { margin: 1rem auto; padding: 0.7rem 1.2rem; border-radius: 6px; font-weight: bold; width: 100%; max-width: 600px; box-sizing: border-box; display: block; }
         .feedback.success { background: #d4edda; color: #155724; }
         .feedback.error { background: #f8d7da; color: #721c24; }
         @media (max-width: 800px) {
@@ -570,7 +574,7 @@ ob_start();
 <div class="container">
     <div style="display:flex;justify-content:space-between;align-items:center;">
         <h1>Finanças</h1>
-        <button class="btn btn-primary no-print" onclick="openAddMenu()">➕ Adicionar</button>
+        <button class="btn btn-primary" onclick="openAddMenu()">➕ Adicionar</button>
     </div>
     
     <!-- Menu de seleção de tipo de adição -->
@@ -591,12 +595,10 @@ ob_start();
     <!-- Dashboard -->
     <div class="dashboard">
         <h2>Dashboard Financeiro <?php echo $ano_atual; ?></h2>
-        
         <div class="export-buttons">
             <button onclick="exportCSV()">Exportar CSV</button>
             <button onclick="window.print()">Imprimir Relatório</button>
         </div>
-        
         <div class="dashboard-grid">
             <div class="dashboard-card">
                 <h3>Receitas vs Despesas</h3>
@@ -611,7 +613,6 @@ ob_start();
                 </div>
             </div>
         </div>
-        
         <table class="financial-table">
             <tr>
                 <th>Mês</th>
@@ -635,67 +636,9 @@ ob_start();
             <?php endfor; ?>
         </table>
     </div>
-
-    <h2>Receitas</h2>
-    <table>
-        <tr><th>Nome</th><th>Tipo</th><th>Valor</th><th>Mês</th><th>Ano</th><th>Ações</th></tr>
-        <?php foreach ($receitas as $r): ?>
-        <tr>
-            <td><?php echo htmlspecialchars($r['nome']); ?></td>
-            <td><?php echo htmlspecialchars($r['tipo']); ?></td>
-            <td>R$ <?php echo number_format($r['valor'],2,',','.'); ?></td>
-            <td><?php echo $r['mes'] ?? '-'; ?></td>
-            <td><?php echo $r['ano']; ?></td>
-            <td class="actions">
-                <form method="post" style="display:inline;">
-                    <input type="hidden" name="delete_receita" value="<?php echo $r['id']; ?>" />
-                    <button type="submit" onclick="return confirm('Remover receita?')">🗑️</button>
-                </form>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
-
-    <h2>Itens de Despesa</h2>
-    <table>
-        <tr><th>Nome</th><th>Descrição</th><th>Valor Unitário</th><th>Categoria</th><th>Elemento Item</th><th>Ações</th></tr>
-        <?php foreach ($itens as $i): ?>
-        <tr>
-            <td><?php echo htmlspecialchars($i['nome']); ?></td>
-            <td><?php echo htmlspecialchars($i['descricao']); ?></td>
-            <td>R$ <?php echo number_format($i['valor_unitario'],2,',','.'); ?></td>
-            <td><?php echo htmlspecialchars($i['categoria']); ?></td>
-            <td><?php echo htmlspecialchars($i['elemento_item'] ?? ''); ?></td>
-            <td class="actions">
-                <form method="post" style="display:inline;">
-                    <input type="hidden" name="delete_item" value="<?php echo $i['id']; ?>" />
-                    <button type="submit" onclick="return confirm('Remover item?')">🗑️</button>
-                </form>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
-
-    <h2>Despesas Realizadas</h2>
-    <table>
-        <tr><th>Item</th><th>Valor Unitário</th><th>Quantidade</th><th>Valor Total</th><th>Mês</th><th>Ano</th><th>Ações</th></tr>
-        <?php foreach ($despesas as $d): ?>
-        <tr>
-            <td><?php echo htmlspecialchars($d['item_nome']); ?></td>
-            <td>R$ <?php echo number_format($d['valor_unitario'],2,',','.'); ?></td>
-            <td><?php echo $d['quantidade']; ?></td>
-            <td>R$ <?php echo number_format($d['valor_total'],2,',','.'); ?></td>
-            <td><?php echo $d['mes']; ?></td>
-            <td><?php echo $d['ano']; ?></td>
-            <td class="actions">
-                <form method="post" style="display:inline;">
-                    <input type="hidden" name="delete_despesa" value="<?php echo $d['id']; ?>" />
-                    <button type="submit" onclick="return confirm('Remover despesa?')">🗑️</button>
-                </form>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
+    <div id="tabelas-financas">
+        <?php include __DIR__ . '/financas_tabelas.php'; ?>
+    </div>
 </div>
 
 <!-- Modais atualizados -->
@@ -705,7 +648,7 @@ ob_start();
             <h3>Receita</h3>
             <button class="close-modal" onclick="closeModal('modalReceita')">&times;</button>
         </div>
-        <form id="formReceita" method="post" onsubmit="return validarFormulario(this)">
+        <form id="formReceita" method="post">
             <input type="hidden" name="add_receita" value="1" />
             <div class="modal-body">
                 <div class="form-group">
@@ -837,10 +780,6 @@ ob_start();
     </div>
 </div>
 
-<div id="tabelas-financas">
-<?php include __DIR__ . '/financas_tabelas.php'; ?>
-</div>
-
 <script>
 // Configuração dos gráficos
 const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -906,28 +845,24 @@ async function updateDashboard() {
     try {
         const response = await fetch('?api=dashboard');
         const data = await response.json();
-        
         // Atualizar gráficos
-        barChart.data.datasets[0].data = Object.values(data.receitas);
-        barChart.data.datasets[1].data = Object.values(data.despesas);
+        barChart.data.datasets[0].data = Object.values(data.receitas).map(Number);
+        barChart.data.datasets[1].data = Object.values(data.despesas).map(Number);
         barChart.update();
-        
-        lineChart.data.datasets[0].data = Object.values(data.saldos).map(s => s.acumulado);
+        lineChart.data.datasets[0].data = Object.values(data.saldos).map(s => Number(s.acumulado));
         lineChart.update();
-        
         // Atualizar tabela
         const table = document.querySelector('.financial-table');
         for (let m = 1; m <= 12; m++) {
+            const receita = Number(data.receitas[m]) || 0;
+            const despesa = Number(data.despesas[m]) || 0;
+            const saldoMensal = Number(data.saldos[m].mensal) || 0;
+            const saldoAcumulado = Number(data.saldos[m].acumulado) || 0;
             const row = table.rows[m];
-            row.cells[1].textContent = `R$ ${data.receitas[m].toFixed(2).replace('.', ',')}`;
-            row.cells[2].textContent = `R$ ${data.despesas[m].toFixed(2).replace('.', ',')}`;
-            
-            const saldoMensal = data.saldos[m].mensal;
-            const saldoAcumulado = data.saldos[m].acumulado;
-            
+            row.cells[1].textContent = `R$ ${receita.toFixed(2).replace('.', ',')}`;
+            row.cells[2].textContent = `R$ ${despesa.toFixed(2).replace('.', ',')}`;
             row.cells[3].textContent = `R$ ${Math.abs(saldoMensal).toFixed(2).replace('.', ',')}`;
             row.cells[3].className = saldoMensal >= 0 ? 'positive' : 'negative';
-            
             row.cells[4].textContent = `R$ ${Math.abs(saldoAcumulado).toFixed(2).replace('.', ',')}`;
             row.cells[4].className = saldoAcumulado >= 0 ? 'positive' : 'negative';
         }
@@ -941,40 +876,124 @@ function exportCSV() {
     window.location.href = '?export=csv';
 }
 
-// Atualizar dashboard após operações
-document.querySelectorAll('form').forEach(form => {
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(form);
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: formData
-            });
-            if (response.ok) {
-                // Atualizar dashboard
-                updateDashboard();
-                // Fechar modal se for modal
-                const modal = form.closest('.modal');
-                if (modal) closeModal(modal.id);
-                // Resetar formulário
-                form.reset();
-                // Atualizar tabelas e feedback
-                const tabelasResp = await fetch('?api=tabelas');
-                const tabelasData = await tabelasResp.json();
-                document.getElementById('tabelas-financas').innerHTML = tabelasData.tabelas;
-                if (tabelasData.feedback) {
-                    document.body.insertAdjacentHTML('afterbegin', tabelasData.feedback);
-                    setTimeout(() => {
-                        const fb = document.getElementById('feedback');
-                        if (fb) fb.style.display = 'none';
-                    }, 3000);
+function attachFormListeners() {
+    document.querySelectorAll('#tabelas-financas form').forEach(form => {
+        if (!form) return;
+        if (form.dataset.listenerAttached === 'true') return;
+        form.dataset.listenerAttached = 'true';
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            try {
+                const response = await fetch(form.action, { method: 'POST', body: formData });
+                if (response.ok) {
+                    const tabelasResp = await fetch('?api=tabelas');
+                    const tabelasData = await tabelasResp.json();
+                    document.getElementById('tabelas-financas').innerHTML = tabelasData.tabelas;
+                    attachFormListeners();
+                    updateDashboard();
+                    if (tabelasData.feedback) {
+                        document.body.insertAdjacentHTML('afterbegin', tabelasData.feedback);
+                        setTimeout(() => {
+                            const fb = document.getElementById('feedback');
+                            if (fb) fb.style.display = 'none';
+                        }, 3000);
+                    }
                 }
+            } catch (error) {
+                console.error('Erro ao processar formulário:', error);
             }
-        } catch (error) {
-            console.error('Erro ao processar formulário:', error);
-        }
+        });
     });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    attachFormListeners();
+    // Listeners separados para os modais
+    const receitaForm = document.getElementById('formReceita');
+    if (receitaForm) {
+        receitaForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            try {
+                const response = await fetch(this.action, { method: 'POST', body: formData });
+                if (response.ok) {
+                    const tabelasResp = await fetch('?api=tabelas');
+                    const tabelasData = await tabelasResp.json();
+                    document.getElementById('tabelas-financas').innerHTML = tabelasData.tabelas;
+                    attachFormListeners();
+                    updateDashboard();
+                    closeModal('modalReceita');
+                    this.reset();
+                    if (tabelasData.feedback) {
+                        document.body.insertAdjacentHTML('afterbegin', tabelasData.feedback);
+                        setTimeout(() => {
+                            const fb = document.getElementById('feedback');
+                            if (fb) fb.style.display = 'none';
+                        }, 3000);
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao processar formulário:', error);
+            }
+        });
+    }
+    const itemForm = document.getElementById('formItem');
+    if (itemForm) {
+        itemForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            try {
+                const response = await fetch(this.action, { method: 'POST', body: formData });
+                if (response.ok) {
+                    const tabelasResp = await fetch('?api=tabelas');
+                    const tabelasData = await tabelasResp.json();
+                    document.getElementById('tabelas-financas').innerHTML = tabelasData.tabelas;
+                    attachFormListeners();
+                    updateDashboard();
+                    closeModal('modalItem');
+                    this.reset();
+                    if (tabelasData.feedback) {
+                        document.body.insertAdjacentHTML('afterbegin', tabelasData.feedback);
+                        setTimeout(() => {
+                            const fb = document.getElementById('feedback');
+                            if (fb) fb.style.display = 'none';
+                        }, 3000);
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao processar formulário:', error);
+            }
+        });
+    }
+    const despesaForm = document.getElementById('formDespesa');
+    if (despesaForm) {
+        despesaForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            try {
+                const response = await fetch(this.action, { method: 'POST', body: formData });
+                if (response.ok) {
+                    const tabelasResp = await fetch('?api=tabelas');
+                    const tabelasData = await tabelasResp.json();
+                    document.getElementById('tabelas-financas').innerHTML = tabelasData.tabelas;
+                    attachFormListeners();
+                    updateDashboard();
+                    closeModal('modalDespesa');
+                    this.reset();
+                    if (tabelasData.feedback) {
+                        document.body.insertAdjacentHTML('afterbegin', tabelasData.feedback);
+                        setTimeout(() => {
+                            const fb = document.getElementById('feedback');
+                            if (fb) fb.style.display = 'none';
+                        }, 3000);
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao processar formulário:', error);
+            }
+        });
+    }
 });
 
 // Validação de despesas
@@ -1093,11 +1112,10 @@ function formatarValorInput(input) {
     input.value = valor;
 }
 
-// Validação de formulários
+// Função de validação de formulário
 function validarFormulario(form) {
     let isValid = true;
     const valorInput = form.querySelector('[name="valor"]');
-    
     if (valorInput) {
         const valor = valorInput.value.replace(/\./g, '').replace(',', '.');
         if (!validarValor(valor)) {
@@ -1107,7 +1125,6 @@ function validarFormulario(form) {
             valorInput.closest('.form-group').classList.remove('has-error');
         }
     }
-    
     return isValid;
 }
 

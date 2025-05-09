@@ -1,4 +1,28 @@
 <?php
+// Conexão com o banco de dados
+$host = 'db';
+$db   = 'sdts3';
+$user = 'sdts3user';
+$pass = 'sdts3pass';
+$charset = 'utf8mb4';
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+];
+
+try {
+    $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (PDOException $e) {
+    die('Erro ao conectar ao banco de dados.');
+}
+
+// Listagens
+$receitas = $pdo->query('SELECT * FROM receitas ORDER BY ano DESC, mes DESC, id DESC')->fetchAll();
+$itens = $pdo->query('SELECT * FROM itens_despesas ORDER BY nome')->fetchAll();
+$despesas = $pdo->query('SELECT d.*, i.nome as item_nome, i.valor_unitario FROM despesas_realizadas d JOIN itens_despesas i ON d.item_id = i.id ORDER BY ano DESC, mes DESC, d.id DESC')->fetchAll();
+
 // Tabela de Receitas
 echo '<h2>Receitas</h2>';
 echo '<table>';
